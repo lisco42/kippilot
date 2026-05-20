@@ -6,6 +6,7 @@ from cereal import log
 from opendbc.car.lateral import get_friction
 from openpilot.common.constants import ACCELERATION_DUE_TO_GRAVITY
 from openpilot.common.filter_simple import FirstOrderFilter
+from openpilot.common.params import Params
 from openpilot.selfdrive.controls.lib.latcontrol import LatControl
 from openpilot.common.pid import PIDController
 
@@ -33,6 +34,12 @@ LAT_ACCEL_REQUEST_BUFFER_SECONDS = 1.0
 FRICTION_THRESHOLD = 0.3
 VERSION = 0
 
+FRICTION_FLOOR = 0.15
+TURN_C = 0.005
+EXIT_C = 0.0015
+TURN_EXIT_DECAY_FRAMES = 30
+TURN_EXIT_DECAY = 0.85
+
 
 class LatControlTorque(LatControl):
   def __init__(self, CP, CP_SP, CI, dt):
@@ -47,6 +54,12 @@ class LatControlTorque(LatControl):
     self.lat_accel_request_buffer = deque([0.] * self.lat_accel_request_buffer_len , maxlen=self.lat_accel_request_buffer_len)
     self.previous_measurement = 0.0
     self.measurement_rate_filter = FirstOrderFilter(0.0, 1 / (2 * np.pi * LP_FILTER_CUTOFF_HZ), self.dt)
+
+    enhanced_tune = Params().get_bool("TorqueV0EnhancedTune")
+    self.friction_floor = FRICTION_FLOOR if enhanced_tune else 0.0
+    self.turn_exit_decay = enhanced_tune
+    self.turn_exit_counter = 0
+    self.in_turn = False
 
     self.extension = LatControlTorqueExt(self, CP, CP_SP, CI)
 
@@ -97,7 +110,18 @@ class LatControlTorque(LatControl):
       # latAccelOffset corrects roll compensation bias from device roll misalignment relative to car roll
       ff -= self.torque_params.latAccelOffset
       # TODO jerk is weighted by lat_delay for legacy reasons, but should be made independent of it
-      ff += get_friction(error, lateral_accel_deadzone, FRICTION_THRESHOLD, self.torque_params)
+      ff += get_friction(error, max(lateral_accel_deadzone, self.friction_floor), FRICTION_THRESHOLD, self.torque_params)
+
+      if self.turn_exit_decay:
+        abs_dc = abs(desired_curvature)
+        if abs_dc > TURN_C:
+          self.in_turn = True
+        elif abs_dc < EXIT_C and self.in_turn:
+          self.turn_exit_counter = TURN_EXIT_DECAY_FRAMES
+          self.in_turn = False
+        if self.turn_exit_counter > 0:
+          self.pid.i *= TURN_EXIT_DECAY
+          self.turn_exit_counter -= 1
 
       freeze_integrator = steer_limited_by_safety or CS.steeringPressed or CS.vEgo < 5
       output_lataccel = self.pid.update(pid_log.error,

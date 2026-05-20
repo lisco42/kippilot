@@ -472,6 +472,22 @@
                       "type": "offroad_only"
                     }
                   ]
+                },
+                {
+                  "key": "TorqueV0EnhancedTune",
+                  "widget": "toggle",
+                  "title": "v0 Enhanced Tune",
+                  "description": "Reduces straight-line jitter and turn-exit overshoot in v0 Torque Control.",
+                  "enablement": [
+                    {
+                      "type": "offroad_only"
+                    },
+                    {
+                      "type": "param",
+                      "key": "TorqueControlTune",
+                      "equals": "0.0"
+                    }
+                  ]
                 }
               ]
             }
