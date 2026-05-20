@@ -224,7 +224,7 @@ sections:
       - $ref: '#/macros/offroad'
       - type: param
         key: TorqueControlTune
-        equals: '0.0'
+        equals: 0.0
 - id: lane_change
   title: Lane Change
   description: Automatic lane change timing and behavior

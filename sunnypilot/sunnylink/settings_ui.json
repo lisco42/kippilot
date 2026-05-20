@@ -485,7 +485,7 @@
                     {
                       "type": "param",
                       "key": "TorqueControlTune",
-                      "equals": "0.0"
+                      "equals": 0.0
                     }
                   ]
                 }
