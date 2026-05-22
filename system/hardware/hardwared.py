@@ -23,7 +23,7 @@ from openpilot.system.statsd import statlog
 from openpilot.common.swaglog import cloudlog
 from openpilot.system.hardware.power_monitoring import PowerMonitoring
 from openpilot.system.hardware.fan_controller import FanController
-from openpilot.system.version import terms_version, training_version, get_build_metadata, terms_version_sp
+from openpilot.system.version import terms_version, training_version, terms_version_sp
 
 ThermalStatus = log.DeviceState.ThermalStatus
 NetworkType = log.DeviceState.NetworkType
@@ -197,6 +197,10 @@ def hardware_thread(end_event, hw_queue) -> None:
 
   fan_controller = FanController(int(1./DT_HW))
 
+  # kp: show welcome banner briefly at boot, then auto-clear
+  welcome_start_ts = time.monotonic()
+  WELCOME_DURATION_S = 3.0
+
   while not end_event.is_set():
     sm.update(PANDA_STATES_TIMEOUT)
 
@@ -308,15 +312,11 @@ def hardware_thread(end_event, hw_queue) -> None:
     startup_conditions["not_always_offroad"] = not offroad_mode
     onroad_conditions["not_always_offroad"] = not offroad_mode
 
-    # if an unsupported device and branch is detected, going onroad is blocked
-    # only allow going onroad when:
-    # - TIZI, or
-    # - TICI and channel_type is "tici"
-    build_metadata = get_build_metadata()
-    is_unsupported_combo = TICI and HARDWARE.get_device_type() == "tici" and build_metadata.channel_type != "tici"
-    startup_conditions["not_tici"] = not is_unsupported_combo
-    onroad_conditions["not_tici"] = not is_unsupported_combo
-    set_offroad_alert("Offroad_TiciSupport", is_unsupported_combo, extra_text=build_metadata.channel)
+    # kp: hardware/branch check disabled — Offroad_TiciSupport repurposed as a startup welcome banner
+    startup_conditions["not_tici"] = True
+    onroad_conditions["not_tici"] = True
+    welcome_show = (time.monotonic() - welcome_start_ts) < WELCOME_DURATION_S
+    set_offroad_alert_if_changed("Offroad_TiciSupport", welcome_show)
 
     # if the temperature enters the danger zone, go offroad to cool down
     onroad_conditions["device_temp_good"] = thermal_status < ThermalStatus.critical

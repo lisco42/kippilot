@@ -16,7 +16,6 @@ from openpilot.system.version import terms_version, training_version, terms_vers
 from openpilot.system.version import sunnylink_consent_version, sunnylink_consent_declined
 from openpilot.selfdrive.ui.ui_state import ui_state, device
 from openpilot.selfdrive.ui.mici.widgets.dialog import BigConfirmationCircleButton
-from openpilot.selfdrive.ui.mici.onroad.driver_state import DriverStateRenderer
 from openpilot.selfdrive.ui.mici.onroad.driver_camera_dialog import BaseDriverCameraDialog
 from openpilot.selfdrive.ui.sunnypilot.mici.layouts.onboarding import SunnylinkConsentPage
 
@@ -24,10 +23,6 @@ from openpilot.selfdrive.ui.sunnypilot.mici.layouts.onboarding import SunnylinkC
 class DriverCameraSetupDialog(BaseDriverCameraDialog):
   def __init__(self):
     super().__init__()
-    self.driver_state_renderer = DriverStateRenderer(inset=True)
-    self.driver_state_renderer.set_rect(rl.Rectangle(0, 0, 120, 120))
-    self.driver_state_renderer.load_icons()
-    self.driver_state_renderer.set_force_active(True)
 
   def _render(self, rect):
     rl.begin_scissor_mode(int(rect.x), int(rect.y), int(rect.width), int(rect.height))
@@ -38,14 +33,6 @@ class DriverCameraSetupDialog(BaseDriverCameraDialog):
                 alignment=rl.GuiTextAlignment.TEXT_ALIGN_CENTER)
       rl.end_scissor_mode()
       return
-
-    # Position dmoji on opposite side from driver
-    is_rhd = self.driver_state_renderer.is_rhd
-    self.driver_state_renderer.set_position(
-      rect.x + 8 if is_rhd else rect.x + rect.width - self.driver_state_renderer.rect.width - 8,
-      rect.y + 8,
-    )
-    self.driver_state_renderer.render()
 
     self._draw_face_detection(rect)
 
@@ -264,10 +251,7 @@ class TrainingGuide(NavWidget):
     super().__init__()
 
     self._steps = [
-      TrainingGuideAttentionNotice(continue_callback=lambda: gui_app.push_widget(self._steps[1])),
-      TrainingGuidePreDMTutorial(continue_callback=lambda: gui_app.push_widget(self._steps[2])),
-      TrainingGuideDMTutorial(continue_callback=lambda: gui_app.push_widget(self._steps[3])),
-      TrainingGuideRecordFront(continue_callback=completed_callback),
+      TrainingGuideAttentionNotice(continue_callback=completed_callback),
     ]
 
     self._child(self._steps[0])

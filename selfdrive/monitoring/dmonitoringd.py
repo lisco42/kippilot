@@ -1,48 +1,49 @@
 #!/usr/bin/env python3
 import cereal.messaging as messaging
+from cereal import log
 from openpilot.common.params import Params
-from openpilot.common.realtime import config_realtime_process
-from openpilot.selfdrive.monitoring.policy import DriverMonitoring
+from openpilot.common.realtime import Ratekeeper, config_realtime_process
+
+AlertLevel = log.DriverMonitoringState.AlertLevel
+MonitoringPolicy = log.DriverMonitoringState.MonitoringPolicy
 
 
 def dmonitoringd_thread():
+  # kippilot: driver monitoring is intentionally disabled (comma-3X-only fork).
+  # Publish a constant "attentive / never-alert / never-lockout" driverMonitoringState
+  # so DM can never block engagement (controlsd forceDecel gates on alertLevel==three)
+  # or raise an alert/lockout (selfdrived gates on lockout/alwaysOnLockout/alertLevel).
   config_realtime_process([0, 1, 2, 3], 5)
 
   params = Params()
   pm = messaging.PubMaster(['driverMonitoringState'])
-  sm = messaging.SubMaster(['driverStateV2', 'liveCalibration', 'carState', 'selfdriveState', 'modelV2',
-                            'carControl'], poll='driverStateV2')
+  rk = Ratekeeper(20, print_delay_threshold=None)
 
-  DM = DriverMonitoring(rhd_saved=params.get_bool("IsRhdDetected"), always_on=params.get_bool("AlwaysOnDM"))
-  demo_mode=False
+  is_rhd = params.get_bool("IsRhdDetected")
 
-  # 20Hz <- dmonitoringmodeld
   while True:
-    sm.update()
-    if not sm.updated['driverStateV2']:
-      # iterate when model has new output
-      continue
-
-    valid = sm.all_checks()
-    if demo_mode and sm.valid['driverStateV2']:
-      DM.run_step(sm, demo=True)
-    elif valid:
-      DM.run_step(sm, demo=demo_mode)
-
-    # publish
-    dat = DM.get_state_packet(valid=valid)
+    dat = messaging.new_message('driverMonitoringState', valid=True)
+    dm = dat.driverMonitoringState
+    dm.lockout = False
+    dm.alwaysOn = False
+    dm.alwaysOnLockout = False
+    dm.alertLevel = AlertLevel.none
+    dm.activePolicy = MonitoringPolicy.vision
+    dm.isRHD = is_rhd
+    dm.rhdCalibration.calibratedPercent = 100
+    dm.visionPolicyState.awarenessPercent = 100
+    dm.visionPolicyState.isDistracted = False
+    dm.visionPolicyState.faceDetected = True
+    dm.visionPolicyState.pose.calibrated = True
+    dm.visionPolicyState.uncertainOffroadAlertPercent = 0
+    dm.wheeltouchPolicyState.awarenessPercent = 100
     pm.send('driverMonitoringState', dat)
 
-    # load live always-on toggle
-    if sm['driverStateV2'].frameId % 40 == 1:
-      DM.always_on = params.get_bool("AlwaysOnDM")
-      demo_mode = params.get_bool("IsDriverViewEnabled")
+    if rk.frame % 100 == 0:
+      is_rhd = params.get_bool("IsRhdDetected")
 
-    # save rhd virtual toggle every 5 mins
-    if (sm['driverStateV2'].frameId % 6000 == 0 and not demo_mode and
-     DM.wheelpos_offsetter.filtered_stat.n > DM.settings._WHEELPOS_FILTER_MIN_COUNT and
-     DM.wheel_on_right == (DM.wheelpos_offsetter.filtered_stat.M > DM.settings._WHEELPOS_THRESHOLD)):
-      params.put_bool("IsRhdDetected", DM.wheel_on_right)
+    rk.keep_time()
+
 
 def main():
   dmonitoringd_thread()

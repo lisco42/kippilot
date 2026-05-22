@@ -1,3 +1,9 @@
+> ## ⚠️ WARNING — `tn-prebuilt` (kippilot)
+>
+> This branch is **heavily modified** for use on a **comma 3X only**. Driver monitoring has been disabled and several UI features have been altered or removed. It is **not** stock openpilot or stock sunnypilot.
+>
+> **Use entirely at your own risk.** I am not responsible for any damage, injury, loss, legal consequence, or any other outcome resulting from your use of this code. If you install it, you accept full responsibility for whatever happens.
+
 ![](https://user-images.githubusercontent.com/47793918/233812617-beab2e71-57b9-479e-8bff-c3931347ca40.png)
 
 ## 🌞 What is sunnypilot?
