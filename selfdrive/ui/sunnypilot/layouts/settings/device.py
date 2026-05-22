@@ -5,13 +5,12 @@ This file is part of sunnypilot and is licensed under the MIT License.
 See the LICENSE.md file in the root directory for more details.
 """
 from openpilot.selfdrive.ui.layouts.settings.device import DeviceLayout
-from openpilot.selfdrive.ui.onroad.driver_camera_dialog import DriverCameraDialog
 from openpilot.selfdrive.ui.ui_state import ui_state
 from openpilot.system.hardware import HARDWARE
 from openpilot.system.ui.lib.application import gui_app
 from openpilot.system.ui.lib.multilang import tr
 from openpilot.system.ui.sunnypilot.widgets.list_view import option_item_sp, multiple_button_item_sp, button_item_sp, \
-  dual_button_item_sp, Spacer
+  dual_button_item_sp, simple_button_item_sp, Spacer
 from openpilot.system.ui.widgets import DialogResult
 from openpilot.system.ui.widgets.button import ButtonStyle
 from openpilot.system.ui.widgets.confirm_dialog import alert_dialog, ConfirmDialog
@@ -78,13 +77,10 @@ class DeviceLayoutSP(DeviceLayout):
       inline=True,
     )
 
-    self._quiet_mode_and_dcam = dual_button_item_sp(
-      left_text=lambda: tr("Quiet Mode"),
-      right_text=lambda: tr("Driver Camera Preview"),
-      left_callback=lambda: ui_state.params.put_bool("QuietMode", not ui_state.params.get_bool("QuietMode")),
-      right_callback=lambda: gui_app.push_widget(DriverCameraDialog())
+    self._quiet_mode_btn = simple_button_item_sp(
+      button_text=lambda: tr("Quiet Mode"),
+      callback=lambda: ui_state.params.put_bool("QuietMode", not ui_state.params.get_bool("QuietMode")),
     )
-    self._quiet_mode_and_dcam.action_item.right_button.set_button_style(ButtonStyle.NORMAL)
 
     self._reg_and_training = dual_button_item_sp(
       left_text=lambda: tr("Regulatory"),
@@ -123,7 +119,7 @@ class DeviceLayoutSP(DeviceLayout):
       LineSeparator(),
       self._max_time_offroad,
       LineSeparator(height=10),
-      self._quiet_mode_and_dcam,
+      self._quiet_mode_btn,
       self._reg_and_training,
       self._onroad_uploads_and_reset_settings,
       Spacer(10),
@@ -207,7 +203,7 @@ class DeviceLayoutSP(DeviceLayout):
       self._scroller._items.insert(0, self._always_offroad_btn)
 
     # Quiet Mode button
-    self._quiet_mode_and_dcam.action_item.left_button.set_button_style(ButtonStyle.PRIMARY if ui_state.params.get_bool("QuietMode") else ButtonStyle.NORMAL)
+    self._quiet_mode_btn.action_item.button_action.set_button_style(ButtonStyle.PRIMARY if ui_state.params.get_bool("QuietMode") else ButtonStyle.NORMAL)
 
     # Onroad Uploads
     self._onroad_uploads_and_reset_settings.action_item.left_button.set_button_style(
@@ -215,7 +211,6 @@ class DeviceLayoutSP(DeviceLayout):
     )
 
     # Offroad only buttons
-    self._quiet_mode_and_dcam.action_item.right_button.set_enabled(ui_state.is_offroad())
     self._reg_and_training.action_item.left_button.set_enabled(ui_state.is_offroad())
     self._reg_and_training.action_item.right_button.set_enabled(ui_state.is_offroad())
     self._onroad_uploads_and_reset_settings.action_item.right_button.set_enabled(ui_state.is_offroad())
