@@ -13,8 +13,6 @@ from openpilot.system.ui.lib.application import gui_app, FontWeight
 from openpilot.system.ui.widgets import Widget
 from openpilot.system.ui.widgets.label import UnifiedLabel
 
-from openpilot.selfdrive.ui.sunnypilot.onroad.speed_limit import SpeedLimitAlertRenderer
-
 AlertSize = log.SelfdriveState.AlertSize
 AlertStatus = log.SelfdriveState.AlertStatus
 
@@ -89,10 +87,9 @@ ALERT_CRITICAL_REBOOT = Alert(
 )
 
 
-class AlertRenderer(Widget, SpeedLimitAlertRenderer):
+class AlertRenderer(Widget):
   def __init__(self):
     Widget.__init__(self)
-    SpeedLimitAlertRenderer.__init__(self)
 
     self._alert_text1_label = UnifiedLabel(text="", font_size=ALERT_FONT_BIG, font_weight=FontWeight.DISPLAY, line_height=0.86,
                                            letter_spacing=-0.02)
@@ -196,9 +193,6 @@ class AlertRenderer(Widget, SpeedLimitAlertRenderer):
       icon_margin_x = 8
       icon_margin_y = 0
 
-    elif event_name == 'speedLimitPreActive':
-      icon_side, txt_icon, icon_alpha, icon_margin_x, icon_margin_y = SpeedLimitAlertRenderer.speed_limit_pre_active_icon_helper(self)
-
     else:
       self._turn_signal_timer = 0.0
 
@@ -242,9 +236,6 @@ class AlertRenderer(Widget, SpeedLimitAlertRenderer):
         return False
 
     self._draw_background(alert)
-
-    # update speed limit UI states
-    SpeedLimitAlertRenderer.update(self)
 
     alert_layout = self._icon_helper(alert)
     self._draw_text(alert, alert_layout)

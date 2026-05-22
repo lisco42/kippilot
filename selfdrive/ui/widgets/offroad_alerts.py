@@ -18,6 +18,7 @@ from openpilot.selfdrive.selfdrived.alertmanager import OFFROAD_ALERTS
 class AlertColors:
   HIGH_SEVERITY = rl.Color(226, 44, 44, 255)
   LOW_SEVERITY = rl.Color(41, 41, 41, 255)
+  WELCOME = rl.Color(0, 170, 200, 255)  # cyan
   BACKGROUND = rl.Color(57, 57, 57, 255)
   BUTTON = rl.WHITE
   BUTTON_PRESSED = rl.Color(200, 200, 200, 255)
@@ -275,7 +276,12 @@ class OffroadAlert(AbstractAlert):
       if not alert_data.visible:
         continue
 
-      bg_color = AlertColors.HIGH_SEVERITY if alert_data.severity > 0 else AlertColors.LOW_SEVERITY
+      if alert_data.severity >= 2:
+        bg_color = AlertColors.WELCOME
+      elif alert_data.severity > 0:
+        bg_color = AlertColors.HIGH_SEVERITY
+      else:
+        bg_color = AlertColors.LOW_SEVERITY
       text_width = int(content_rect.width - (AlertConstants.ALERT_INSET * 2))
       wrapped_lines = wrap_text(font, alert_data.text, AlertConstants.FONT_SIZE, text_width)
       line_count = len(wrapped_lines)
