@@ -54,7 +54,7 @@ class AugmentedRoadView(CameraView, AugmentedRoadViewSP):
     self.model_renderer = ModelRenderer()
     self._hud_renderer = HudRenderer()
     self.alert_renderer = AlertRenderer()
-    self.kitten_renderer = KittenRenderer()
+    self.kitten_renderer = KittenRenderer(visible_when=lambda: ui_state.started)
 
   def _render(self, rect):
     # Only render when system is started to avoid invalid data access
