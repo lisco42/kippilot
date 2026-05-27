@@ -157,7 +157,7 @@ class AugmentedRoadView(CameraView):
     self._hud_renderer = HudRenderer()
     self._alert_renderer = AlertRenderer()
     self._confidence_ball = ConfidenceBall()
-    self._kitten_renderer = KittenRenderer()
+    self._kitten_renderer = KittenRenderer(visible_when=lambda: ui_state.started)
     self._offroad_label = UnifiedLabel("start the car to\nuse sunnypilot", 54, FontWeight.DISPLAY,
                                        text_color=rl.Color(255, 255, 255, int(255 * 0.9)),
                                        alignment=rl.GuiTextAlignment.TEXT_ALIGN_CENTER,

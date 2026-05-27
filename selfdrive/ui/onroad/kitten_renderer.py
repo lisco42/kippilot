@@ -1,14 +1,13 @@
 import pyray as rl
 from openpilot.selfdrive.ui import UI_BORDER_SIZE
-from openpilot.selfdrive.ui.ui_state import ui_state
 from openpilot.system.ui.lib.application import FontWeight, gui_app
 from openpilot.system.ui.widgets import Widget
 
 KITTEN_LINES = (
-  " /\\_/\\",
+  "  /\\_/\\",
   "=( o.o )=",
-  " )   (   //",
-  "(__ __)//",
+  " )'   '( //",
+  " (__ __)//",
 )
 
 FONT_SIZE = 32
@@ -17,12 +16,13 @@ SHADOW_OFFSET = 2
 
 
 class KittenRenderer(Widget):
-  def __init__(self):
+  def __init__(self, visible_when=None):
     super().__init__()
     self._font = gui_app.font(FontWeight.MONO)
     self._fg = rl.Color(255, 255, 255, 230)
     self._shadow = rl.Color(0, 0, 0, 200)
-    self.set_visible(lambda: ui_state.started)
+    if visible_when is not None:
+      self.set_visible(visible_when)
 
   def _render(self, rect):
     line_h = FONT_SIZE + LINE_SPACING
