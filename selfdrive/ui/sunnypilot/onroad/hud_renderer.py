@@ -6,6 +6,7 @@ See the LICENSE.md file in the root directory for more details.
 """
 import pyray as rl
 
+from cereal import log
 from openpilot.common.constants import CV
 from openpilot.selfdrive.ui.mici.onroad.torque_bar import TorqueBar
 from openpilot.selfdrive.ui.sunnypilot.onroad.developer_ui import DeveloperUiRenderer, DeveloperUiState, get_bottom_dev_ui_offset
@@ -22,6 +23,12 @@ from openpilot.system.ui.lib.multilang import tr
 from openpilot.system.ui.lib.text_measure import measure_text_cached
 
 SLA_ACTIVE_COLOR = rl.Color(0x91, 0x9b, 0x95, 0xff)
+
+# kp: device-temperature box colors (green / yellow / red), mirroring the sidebar TEMP indicator
+ThermalStatus = log.DeviceState.ThermalStatus
+TEMP_GOOD_COLOR = rl.Color(128, 216, 166, 255)     # mint green (matches engaged)
+TEMP_WARNING_COLOR = rl.Color(218, 202, 37, 255)   # yellow (matches sidebar WARNING)
+TEMP_DANGER_COLOR = rl.Color(201, 34, 49, 255)     # red (matches sidebar DANGER)
 
 
 class HudRendererSP(HudRenderer):
@@ -125,8 +132,40 @@ class HudRendererSP(HudRenderer):
   def _draw_current_speed(self, rect: rl.Rectangle) -> None:
     self.speed_renderer.render(rect)
 
+  def _draw_device_temp(self, rect: rl.Rectangle) -> None:
+    # kp: device temperature box, top-right under the wheel, styled like the MAX set-speed box
+    device_state = ui_state.sm['deviceState']
+    thermal_status = device_state.thermalStatus
+    if thermal_status == ThermalStatus.green:
+      temp_color = TEMP_GOOD_COLOR
+    elif thermal_status == ThermalStatus.yellow:
+      temp_color = TEMP_WARNING_COLOR
+    else:
+      temp_color = TEMP_DANGER_COLOR
+
+    box_w = UI_CONFIG.set_speed_width_imperial
+    box_h = 132
+    # center the box horizontally under the wheel button, just below it
+    wheel_center_x = rect.x + rect.width - UI_CONFIG.border_size - UI_CONFIG.button_size / 2
+    x = wheel_center_x - box_w / 2
+    y = rect.y + UI_CONFIG.border_size + UI_CONFIG.button_size + 18
+
+    temp_rect = rl.Rectangle(x, y, box_w, box_h)
+    rl.draw_rectangle_rounded(temp_rect, 0.35, 10, COLORS.BLACK_TRANSLUCENT)
+    rl.draw_rectangle_rounded_lines_ex(temp_rect, 0.35, 10, 6, COLORS.BORDER_TRANSLUCENT)
+
+    label = tr("TEMP")
+    label_width = measure_text_cached(self._font_semi_bold, label, 36).x
+    rl.draw_text_ex(self._font_semi_bold, label, rl.Vector2(x + (box_w - label_width) / 2, y + 16), 36, 0, COLORS.GREY)
+
+    value = f"{round(device_state.maxTempC)}°"
+    value_width = measure_text_cached(self._font_bold, value, 76).x
+    rl.draw_text_ex(self._font_bold, value, rl.Vector2(x + (box_w - value_width) / 2, y + 48), 76, 0, temp_color)
+
   def _render(self, rect: rl.Rectangle) -> None:
     super()._render(rect)
+
+    self._draw_device_temp(rect)
 
     if ui_state.torque_bar:
       torque_rect = rect
