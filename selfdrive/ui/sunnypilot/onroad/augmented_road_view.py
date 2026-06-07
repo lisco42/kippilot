@@ -19,6 +19,15 @@ class AugmentedRoadViewSP:
   def __init__(self):
     self._fade_texture = gui_app.texture("icons_mici/onroad/onroad_fade.png")
     self._fade_alpha_filter = FirstOrderFilter(0, 0.1, 1 / gui_app.target_fps)
+    # kp: confidence ball on the left edge of the standard (3X) onroad UI.
+    # Lazy import to avoid a circular import (confidence_ball -> mici ConfidenceBallSP
+    # -> onroad.augmented_road_view.BORDER_COLORS, which is still importing this module).
+    from openpilot.selfdrive.ui.sunnypilot.onroad.confidence_ball import ConfidenceBallRendererSP
+    self._confidence_ball = ConfidenceBallRendererSP()
+
+  def render_confidence_ball(self, _content_rect):
+    # kp: ported from the mici UI; shows the model's lat/long override confidence
+    self._confidence_ball.render(_content_rect)
 
   def update_fade_out_bottom_overlay(self, _content_rect):
     # Fade out bottom of overlays for looks (only when engaged)
