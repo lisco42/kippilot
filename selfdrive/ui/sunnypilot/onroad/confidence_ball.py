@@ -65,7 +65,10 @@ class ConfidenceBallRendererSP(Widget, ConfidenceBallSP):
     # high confidence -> top, low confidence -> bottom; clamp so it never leaves the band
     cy = top + max(0.0, min(1.0, 1 - self._confidence_filter.x)) * travel
 
-    if ui_state.status == UIStatus.ENGAGED:
+    # kp: color by confidence in ALL active modes (lat-only/long-only/engaged), not just
+    # engaged — green > yellow > red as confidence drops. The screen border still carries
+    # the MADS state color, so the ball is free to be a pure confidence meter here.
+    if ui_state.status in (UIStatus.ENGAGED, UIStatus.LAT_ONLY, UIStatus.LONG_ONLY):
       if self._confidence_filter.x > 0.5:
         top_dot_color = rl.Color(0, 255, 204, 255)
         bottom_dot_color = rl.Color(0, 255, 38, 255)
@@ -75,8 +78,6 @@ class ConfidenceBallRendererSP(Widget, ConfidenceBallSP):
       else:
         top_dot_color = rl.Color(255, 0, 21, 255)
         bottom_dot_color = rl.Color(255, 0, 89, 255)
-    elif ui_state.status in (UIStatus.LAT_ONLY, UIStatus.LONG_ONLY):
-      top_dot_color = bottom_dot_color = self.get_lat_long_dot_color()
     elif ui_state.status == UIStatus.OVERRIDE:
       top_dot_color = rl.Color(255, 255, 255, 255)
       bottom_dot_color = rl.Color(82, 82, 82, 255)
