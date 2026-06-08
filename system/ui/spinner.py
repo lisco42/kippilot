@@ -2,8 +2,9 @@
 import pyray as rl
 import select
 import sys
+from importlib.resources import as_file
 
-from openpilot.system.ui.lib.application import gui_app, FontWeight
+from openpilot.system.ui.lib.application import gui_app, FONT_DIR
 from openpilot.system.ui.lib.text_measure import measure_text_cached
 from openpilot.system.ui.text import wrap_text
 from openpilot.system.ui.widgets import Widget
@@ -47,7 +48,14 @@ class Spinner(Widget):
   def __init__(self):
     super().__init__()
     self._spinner_texture = gui_app.texture("images/spinner_track.png", TEXTURE_SIZE, TEXTURE_SIZE, alpha_premultiply=True)
-    self._kitten_font = gui_app.font(FontWeight.MONO)
+    # Load JetBrainsMono straight from the .ttf rather than gui_app.font(MONO): the boot
+    # spinner is an early process that may not have the build-generated MONO .fnt atlas, in
+    # which case gui_app.font() silently falls back to a proportional font and the ASCII art
+    # scrambles. Loading the ttf here guarantees a real monospace font for the kitten.
+    with as_file(FONT_DIR.joinpath("JetBrainsMono-Medium.ttf")) as kitten_ttf:
+      self._kitten_font = rl.load_font_ex(kitten_ttf.as_posix(), 120, rl.ffi.NULL, 0)
+    rl.gen_texture_mipmaps(self._kitten_font.texture)
+    rl.set_texture_filter(self._kitten_font.texture, rl.TextureFilter.TEXTURE_FILTER_TRILINEAR)
     self._rotation = 0.0
     self._progress: int | None = None
     self._wrapped_lines: list[str] = []
