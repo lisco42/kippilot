@@ -52,10 +52,15 @@ class Spinner(Widget):
     # spinner is an early process that may not have the build-generated MONO .fnt atlas, in
     # which case gui_app.font() silently falls back to a proportional font and the ASCII art
     # scrambles. Loading the ttf here guarantees a real monospace font for the kitten.
-    with as_file(FONT_DIR.joinpath("JetBrainsMono-Medium.ttf")) as kitten_ttf:
-      self._kitten_font = rl.load_font_ex(kitten_ttf.as_posix(), 120, rl.ffi.NULL, 0)
-    rl.gen_texture_mipmaps(self._kitten_font.texture)
-    rl.set_texture_filter(self._kitten_font.texture, rl.TextureFilter.TEXTURE_FILTER_TRILINEAR)
+    # Defensive: a missing/unreadable ttf must not take down the (boot) spinner. Fall back to
+    # the default font (kitten just won't be monospace) rather than letting __init__ raise.
+    try:
+      with as_file(FONT_DIR.joinpath("JetBrainsMono-Medium.ttf")) as kitten_ttf:
+        self._kitten_font = rl.load_font_ex(kitten_ttf.as_posix(), 120, rl.ffi.NULL, 0)
+      rl.gen_texture_mipmaps(self._kitten_font.texture)
+      rl.set_texture_filter(self._kitten_font.texture, rl.TextureFilter.TEXTURE_FILTER_TRILINEAR)
+    except Exception:
+      self._kitten_font = gui_app.font()
     self._rotation = 0.0
     self._progress: int | None = None
     self._wrapped_lines: list[str] = []

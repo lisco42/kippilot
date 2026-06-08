@@ -18,6 +18,7 @@ from openpilot.selfdrive.ui.sunnypilot.onroad.circular_alerts import CircularAle
 from openpilot.selfdrive.ui.sunnypilot.onroad.speed_renderer import SpeedRenderer
 from openpilot.selfdrive.ui.ui_state import ui_state, UIStatus
 from openpilot.selfdrive.ui.onroad.hud_renderer import HudRenderer, UI_CONFIG, FONT_SIZES, COLORS, CRUISE_DISABLED_CHAR
+from openpilot.common.swaglog import cloudlog
 from openpilot.system.ui.lib.application import gui_app
 from openpilot.system.ui.lib.multilang import tr
 from openpilot.system.ui.lib.text_measure import measure_text_cached
@@ -42,6 +43,7 @@ class HudRendererSP(HudRenderer):
     self.circular_alerts_renderer = CircularAlertsRenderer()
     self.speed_renderer = SpeedRenderer()
     self._torque_bar = TorqueBar(scale=3.0, always=True)
+    self._device_temp_failed = False
 
     self.pcm_cruise_speed: bool = True
     self.show_icbm_status: bool = False
@@ -165,7 +167,15 @@ class HudRendererSP(HudRenderer):
   def _render(self, rect: rl.Rectangle) -> None:
     super()._render(rect)
 
-    self._draw_device_temp(rect)
+    # kp: device-temp box is a new, never-on-car-tested onroad widget. Isolate it so a failure
+    # loses only the temp box, not the rest of the HUD (speed/set-speed), and never the ui
+    # process. Logged once to swaglog. (Belt-and-suspenders with the road-view overlay guard.)
+    if not self._device_temp_failed:
+      try:
+        self._draw_device_temp(rect)
+      except Exception:
+        cloudlog.exception("device temp box render failed; disabling for this session")
+        self._device_temp_failed = True
 
     if ui_state.torque_bar:
       torque_rect = rect

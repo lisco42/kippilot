@@ -10,6 +10,7 @@ from openpilot.selfdrive.ui.onroad.kitten_renderer import KittenRenderer
 from openpilot.selfdrive.ui.onroad.model_renderer import ModelRenderer
 from openpilot.selfdrive.ui.onroad.cameraview import CameraView
 from openpilot.system.ui.lib.application import gui_app
+from openpilot.common.swaglog import cloudlog
 from openpilot.common.transformations.camera import DEVICE_CAMERAS, DeviceCameraConfig, view_frame_from_device_frame
 from openpilot.common.transformations.orientation import rot_from_euler
 
@@ -55,6 +56,21 @@ class AugmentedRoadView(CameraView, AugmentedRoadViewSP):
     self._hud_renderer = HudRenderer()
     self.alert_renderer = AlertRenderer()
     self.kitten_renderer = KittenRenderer(visible_when=lambda: ui_state.started)
+    self._logged_overlay_failures: set[str] = set()
+
+  def _safe_overlay(self, name: str, render_fn) -> None:
+    # The ui process runs with restart_if_crash=True and the UI render loop only catches
+    # KeyboardInterrupt, so an uncaught exception in any onroad overlay kills ui, manager
+    # restarts it, it hits the same onroad state and re-crashes -> a boot/restart loop that
+    # presents as "bootloops when connected to the car". Catch per-overlay so one bad widget
+    # degrades to a logged, skipped frame; the colored state border (drawn outside this block)
+    # always survives. The offending overlay name is logged once to swaglog.
+    try:
+      render_fn()
+    except Exception:
+      if name not in self._logged_overlay_failures:
+        cloudlog.exception(f"onroad overlay '{name}' raised; skipping it (logged once)")
+        self._logged_overlay_failures.add(name)
 
   def _render(self, rect):
     # Only render when system is started to avoid invalid data access
@@ -86,13 +102,14 @@ class AugmentedRoadView(CameraView, AugmentedRoadViewSP):
     # Render the base camera view
     super()._render(rect)
 
-    # Draw all UI overlays
-    self.model_renderer.render(self._content_rect)
-    AugmentedRoadViewSP.update_fade_out_bottom_overlay(self, self._content_rect)
-    self._hud_renderer.render(self._content_rect)
-    self.alert_renderer.render(self._content_rect)
-    self.kitten_renderer.render(self._content_rect)
-    AugmentedRoadViewSP.render_confidence_ball(self, self._content_rect)
+    # Draw all UI overlays. Each is isolated so an exception in one onroad widget degrades to
+    # a logged, skipped frame instead of crash-looping the ui process (see _safe_overlay).
+    self._safe_overlay("model", lambda: self.model_renderer.render(self._content_rect))
+    self._safe_overlay("fade", lambda: AugmentedRoadViewSP.update_fade_out_bottom_overlay(self, self._content_rect))
+    self._safe_overlay("hud", lambda: self._hud_renderer.render(self._content_rect))
+    self._safe_overlay("alert", lambda: self.alert_renderer.render(self._content_rect))
+    self._safe_overlay("kitten", lambda: self.kitten_renderer.render(self._content_rect))
+    self._safe_overlay("confidence_ball", lambda: AugmentedRoadViewSP.render_confidence_ball(self, self._content_rect))
 
     # Custom UI extension point - add custom overlays here
     # Use self._content_rect for positioning within camera bounds
