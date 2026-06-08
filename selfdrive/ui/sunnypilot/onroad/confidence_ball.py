@@ -41,13 +41,20 @@ class ConfidenceBallRendererSP(Widget, ConfidenceBallSP):
     self._confidence_filter = FirstOrderFilter(-0.5, 0.5, 1 / gui_app.target_fps)
 
   def _update_state(self):
-    if ui_state.status == UIStatus.DISENGAGED:
+    sm = ui_state.sm
+    # Don't read model state until we're onroad with a freshly-received, valid modelV2.
+    # Matches the guard ModelRenderer uses (recv_frame >= started_frame) so we never touch
+    # stale/empty model data on the offroad->onroad transition.
+    model_ready = (ui_state.started and sm.valid['modelV2'] and
+                   sm.recv_frame['modelV2'] >= ui_state.started_frame)
+    if not model_ready or ui_state.status == UIStatus.DISENGAGED:
       self._confidence_filter.update(-0.5)
     elif ui_state.status in (UIStatus.LAT_ONLY, UIStatus.LONG_ONLY):
       self._confidence_filter.update(1 - max(self.get_animate_status_probs() or [1]))
     else:
-      self._confidence_filter.update((1 - max(ui_state.sm['modelV2'].meta.disengagePredictions.brakeDisengageProbs or [1])) *
-                                     (1 - max(ui_state.sm['modelV2'].meta.disengagePredictions.steerOverrideProbs or [1])))
+      meta = sm['modelV2'].meta
+      self._confidence_filter.update((1 - max(meta.disengagePredictions.brakeDisengageProbs or [1])) *
+                                     (1 - max(meta.disengagePredictions.steerOverrideProbs or [1])))
 
   def _render(self, _):
     # only show the dot when openpilot is actually doing something

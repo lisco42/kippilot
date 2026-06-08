@@ -6,6 +6,7 @@ See the LICENSE.md file in the root directory for more details.
 """
 import pyray as rl
 from openpilot.common.filter_simple import FirstOrderFilter
+from openpilot.common.swaglog import cloudlog
 from openpilot.selfdrive.ui.ui_state import UIStatus, ui_state
 from openpilot.system.ui.lib.application import gui_app
 
@@ -24,10 +25,20 @@ class AugmentedRoadViewSP:
     # -> onroad.augmented_road_view.BORDER_COLORS, which is still importing this module).
     from openpilot.selfdrive.ui.sunnypilot.onroad.confidence_ball import ConfidenceBallRendererSP
     self._confidence_ball = ConfidenceBallRendererSP()
+    self._confidence_ball_failed = False
 
   def render_confidence_ball(self, _content_rect):
-    # kp: ported from the mici UI; shows the model's lat/long override confidence
-    self._confidence_ball.render(_content_rect)
+    # kp: ported from the mici UI; shows the model's lat/long override confidence.
+    # Defensive: this is a cosmetic widget and must never crash-loop the onroad UI on the
+    # car. On the first failure, log to swaglog (so the cause is still captured) and disable
+    # it for the rest of the session rather than taking the whole UI process down.
+    if self._confidence_ball_failed:
+      return
+    try:
+      self._confidence_ball.render(_content_rect)
+    except Exception:
+      cloudlog.exception("confidence ball render failed; disabling for this session")
+      self._confidence_ball_failed = True
 
   def update_fade_out_bottom_overlay(self, _content_rect):
     # Fade out bottom of overlays for looks (only when engaged)
