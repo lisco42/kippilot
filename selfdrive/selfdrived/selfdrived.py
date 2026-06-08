@@ -92,8 +92,13 @@ class SelfdriveD(CruiseHelper):
     self.car_state_sock = messaging.sub_sock('carState', timeout=20)
 
     ignore = self.sensor_packets + self.gps_packets + ['alertDebug', 'lateralManeuverPlan'] + ['modelDataV2SP']
+    # kp: the driver camera is permanently disabled on this fork (driver monitoring off), so
+    # driverCameraState never publishes. Ignore it for alive/freq/valid checks; otherwise
+    # selfdrived raises a false "Camera Malfunction" (a NO_ENTRY/SOFT_DISABLE event) every
+    # drive, which blocks engagement. Road/wide cameras stay checked, so a real fault still fires.
+    ignore += ['driverCameraState']
     if SIMULATION:
-      ignore += ['driverCameraState', 'managerState']
+      ignore += ['managerState']
     if REPLAY:
       # no vipc in replay will make them ignored anyways
       ignore += ['roadCameraState', 'wideRoadCameraState']
