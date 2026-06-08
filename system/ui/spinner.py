@@ -34,8 +34,9 @@ KITTEN_LINES = (
   " )'   '( //",
   " (__ __)//",
 )
-KITTEN_FONT_SIZE = max(12, TEXTURE_SIZE // 7)
+KITTEN_FONT_SIZE = max(14, TEXTURE_SIZE // 9)
 KITTEN_LINE_SPACING = max(2, KITTEN_FONT_SIZE // 8)
+KITTEN_SHADOW_OFFSET = 2
 
 
 def clamp(value, min_value, max_value):
@@ -82,14 +83,18 @@ class Spinner(Widget):
                         rl.Rectangle(center.x, center.y, TEXTURE_SIZE, TEXTURE_SIZE),
                         spinner_origin, self._rotation, rl.WHITE)
 
+    # ASCII art must stay LEFT-aligned (all lines share one left edge) so the columns line
+    # up; only the whole block is centered, by its widest line. Per-line centering scrambles
+    # the art. Matches the onroad kitten's left-aligned style.
     line_h = KITTEN_FONT_SIZE + KITTEN_LINE_SPACING
+    block_w = max(measure_text_cached(self._kitten_font, line, KITTEN_FONT_SIZE).x for line in KITTEN_LINES)
+    block_left = center.x - block_w / 2.0
     block_top = center.y - (line_h * len(KITTEN_LINES)) / 2.0
     for i, line in enumerate(KITTEN_LINES):
-      line_w = measure_text_cached(self._kitten_font, line, KITTEN_FONT_SIZE).x
-      lx = center.x - line_w / 2.0
-      ly = block_top + i * line_h
-      rl.draw_text_ex(self._kitten_font, line, rl.Vector2(lx + 2, ly + 2), KITTEN_FONT_SIZE, 0, rl.Color(0, 0, 0, 200))
-      rl.draw_text_ex(self._kitten_font, line, rl.Vector2(lx, ly), KITTEN_FONT_SIZE, 0, rl.WHITE)
+      pos = rl.Vector2(block_left, block_top + i * line_h)
+      shadow = rl.Vector2(pos.x + KITTEN_SHADOW_OFFSET, pos.y + KITTEN_SHADOW_OFFSET)
+      rl.draw_text_ex(self._kitten_font, line, shadow, KITTEN_FONT_SIZE, 0, rl.Color(0, 0, 0, 200))
+      rl.draw_text_ex(self._kitten_font, line, pos, KITTEN_FONT_SIZE, 0, rl.Color(255, 255, 255, 230))
 
     # Display the progress bar or text based on user input
     if self._progress is not None:
