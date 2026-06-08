@@ -155,6 +155,11 @@ class TorqueBar(Widget):
     self._always = always
     self._torque_filter = FirstOrderFilter(0, 0.1, 1 / gui_app.target_fps)
     self._torque_line_alpha_filter = FirstOrderFilter(0.0, 0.1, 1 / gui_app.target_fps)
+    # kp: center-dot geometry, published each frame so the SP confidence indicator can
+    # anchor itself on the steering-arc vertex (None until the bar has rendered once).
+    self.center_dot_pos: tuple[float, float] | None = None
+    self.center_dot_radius: float = 10 // 2 * scale
+    self.center_dot_alpha: float = 0.0
 
   def update_filter(self, value: float):
     """Update the torque filter value (for demo mode)."""
@@ -261,8 +266,15 @@ class TorqueBar(Widget):
 
     draw_polygon(rect, sl_pts, gradient=gradient)
 
+    # center torque bar dot — publish its geometry every frame (even when the grey dot
+    # itself is hidden during hard steering) so the SP confidence indicator can sit on it
+    dot_y = self._rect.y + self._rect.height - torque_line_offset - torque_line_height / 2
+    dot_radius = 10 // 2 * self._scale
+    self.center_dot_pos = (cx, dot_y)
+    self.center_dot_radius = dot_radius
+    self.center_dot_alpha = self._torque_line_alpha_filter.x
+
     # draw center torque bar dot
     if abs(self._torque_filter.x) < 0.5:
-      dot_y = self._rect.y + self._rect.height - torque_line_offset - torque_line_height / 2
-      rl.draw_circle(int(cx), int(dot_y), (10 // 2 * self._scale),
+      rl.draw_circle(int(cx), int(dot_y), dot_radius,
                      rl.Color(182, 182, 182, int(255 * 0.9 * self._torque_line_alpha_filter.x)))

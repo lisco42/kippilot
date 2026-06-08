@@ -39,6 +39,12 @@ class VisualsLayout(Widget):
         tr("Display steering arc on the driving screen when lateral control is enabled."),
         None,
       ),
+      "SteeringArcConfidence": (
+        lambda: tr("Steering Arc Confidence"),
+        tr("Color the center dot of the steering arc by the driving model's confidence " +
+           "(green = high, yellow = medium, red = low). Requires Steering Arc to be enabled."),
+        None,
+      ),
       "RainbowMode": (
         lambda: tr("Enable Tesla Rainbow Mode"),
         tr("A beautiful rainbow effect on the path the model wants to take. " +

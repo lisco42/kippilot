@@ -51,6 +51,7 @@ class UIStateSP:
     self.rocket_fuel: bool = False
     self.speed_limit_mode = None
     self.standstill_timer: bool = False
+    self.steering_arc_confidence: bool = False
     self.sunnylink_enabled: bool = False
     self.torque_bar: bool = False
     self.enforce_torque_control: bool = False
@@ -158,6 +159,7 @@ class UIStateSP:
     self.rocket_fuel = self.params.get_bool("RocketFuel")
     self.speed_limit_mode = self.params.get("SpeedLimitMode", return_default=True)
     self.standstill_timer = self.params.get_bool("StandstillTimer")
+    self.steering_arc_confidence = self.params.get_bool("SteeringArcConfidence")
     self.sunnylink_enabled = self.params.get_bool("SunnylinkEnabled")
     self.torque_bar = self.params.get_bool("TorqueBar")
     self.enforce_torque_control = self.params.get_bool("EnforceTorqueControl")

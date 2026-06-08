@@ -105,7 +105,6 @@ class AugmentedRoadView(CameraView, AugmentedRoadViewSP):
     # Draw all UI overlays. Each is isolated so an exception in one onroad widget degrades to
     # a logged, skipped frame instead of crash-looping the ui process (see _safe_overlay).
     self._safe_overlay("model", lambda: self.model_renderer.render(self._content_rect))
-    self._safe_overlay("fade", lambda: AugmentedRoadViewSP.update_fade_out_bottom_overlay(self, self._content_rect))
     self._safe_overlay("hud", lambda: self._hud_renderer.render(self._content_rect))
     self._safe_overlay("alert", lambda: self.alert_renderer.render(self._content_rect))
     self._safe_overlay("kitten", lambda: self.kitten_renderer.render(self._content_rect))
