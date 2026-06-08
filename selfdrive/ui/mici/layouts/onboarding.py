@@ -236,9 +236,9 @@ class TrainingGuideAttentionNotice(Scroller):
     continue_button.set_click_callback(continue_callback)
 
     self._scroller.add_widgets([
-      GreyBigButton("what is sunnypilot?", "scroll to continue",
+      GreyBigButton("what is kippilot?", "scroll to continue",
                     gui_app.texture("icons_mici/setup/green_info.png", 64, 64)),
-      GreyBigButton("", "1. sunnypilot is a driver assistance system."),
+      GreyBigButton("", "1. kippilot is a driver assistance system."),
       GreyBigButton("", "2. You must pay attention at all times."),
       GreyBigButton("", "3. You must be ready to take over at any time."),
       GreyBigButton("", "4. You are fully responsible for driving the car."),
@@ -306,7 +306,7 @@ class TermsPage(Scroller):
 
     self._terms_header = GreyBigButton("terms of\nservice", "scroll to continue",
                                        gui_app.texture("icons_mici/setup/green_info.png", 64, 64))
-    self._must_accept_card = GreyBigButton("", "You must accept the Terms of Service to use sunnypilot.")
+    self._must_accept_card = GreyBigButton("", "You must accept the Terms of Service to use kippilot.")
 
     self._scroller.add_widgets([
       self._terms_header,
