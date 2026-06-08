@@ -3,7 +3,7 @@ import pyray as rl
 import select
 import sys
 
-from openpilot.system.ui.lib.application import gui_app
+from openpilot.system.ui.lib.application import gui_app, FontWeight
 from openpilot.system.ui.lib.text_measure import measure_text_cached
 from openpilot.system.ui.text import wrap_text
 from openpilot.system.ui.widgets import Widget
@@ -27,6 +27,16 @@ FONT_SIZE = 96
 LINE_HEIGHT = 104
 DARKGRAY = (55, 55, 55, 255)
 
+# kp: ASCII kitten drawn in place of the comma logo, centered inside the rotating ring
+KITTEN_LINES = (
+  "  /\\_/\\",
+  "=( o.o )=",
+  " )'   '( //",
+  " (__ __)//",
+)
+KITTEN_FONT_SIZE = max(12, TEXTURE_SIZE // 7)
+KITTEN_LINE_SPACING = max(2, KITTEN_FONT_SIZE // 8)
+
 
 def clamp(value, min_value, max_value):
   return max(min(value, max_value), min_value)
@@ -35,8 +45,8 @@ def clamp(value, min_value, max_value):
 class Spinner(Widget):
   def __init__(self):
     super().__init__()
-    self._comma_texture = gui_app.texture("../../sunnypilot/selfdrive/assets/images/spinner_sunnypilot.png", TEXTURE_SIZE, TEXTURE_SIZE)
     self._spinner_texture = gui_app.texture("images/spinner_track.png", TEXTURE_SIZE, TEXTURE_SIZE, alpha_premultiply=True)
+    self._kitten_font = gui_app.font(FontWeight.MONO)
     self._rotation = 0.0
     self._progress: int | None = None
     self._wrapped_lines: list[str] = []
@@ -63,16 +73,23 @@ class Spinner(Widget):
 
     center = rl.Vector2(rect.width / 2.0, center_y)
     spinner_origin = rl.Vector2(TEXTURE_SIZE / 2.0, TEXTURE_SIZE / 2.0)
-    comma_position = rl.Vector2(center.x - TEXTURE_SIZE / 2.0, center.y - TEXTURE_SIZE / 2.0)
 
     delta_time = rl.get_frame_time()
     self._rotation = (self._rotation + DEGREES_PER_SECOND * delta_time) % 360.0
 
-    # Draw rotating spinner and static comma logo
+    # Draw the rotating ring with the kitten centered inside it (replaces the comma logo)
     rl.draw_texture_pro(self._spinner_texture, rl.Rectangle(0, 0, TEXTURE_SIZE, TEXTURE_SIZE),
                         rl.Rectangle(center.x, center.y, TEXTURE_SIZE, TEXTURE_SIZE),
                         spinner_origin, self._rotation, rl.WHITE)
-    rl.draw_texture_v(self._comma_texture, comma_position, rl.WHITE)
+
+    line_h = KITTEN_FONT_SIZE + KITTEN_LINE_SPACING
+    block_top = center.y - (line_h * len(KITTEN_LINES)) / 2.0
+    for i, line in enumerate(KITTEN_LINES):
+      line_w = measure_text_cached(self._kitten_font, line, KITTEN_FONT_SIZE).x
+      lx = center.x - line_w / 2.0
+      ly = block_top + i * line_h
+      rl.draw_text_ex(self._kitten_font, line, rl.Vector2(lx + 2, ly + 2), KITTEN_FONT_SIZE, 0, rl.Color(0, 0, 0, 200))
+      rl.draw_text_ex(self._kitten_font, line, rl.Vector2(lx, ly), KITTEN_FONT_SIZE, 0, rl.WHITE)
 
     # Display the progress bar or text based on user input
     if self._progress is not None:
